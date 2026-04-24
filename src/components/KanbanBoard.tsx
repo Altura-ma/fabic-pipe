@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
+import { parseISO } from 'date-fns'
 import { useSessionStore } from '@/store'
 import type { Session, KanbanColumn, TrainingType } from '@/types'
 import { getSessionColumn } from '@/lib/utils'
@@ -25,10 +26,11 @@ const COLUMNS: Column[] = [
 
 interface Props {
   filter: TrainingType | 'all'
+  monthFilter: Date | null
   search: string
 }
 
-export function KanbanBoard({ filter, search }: Props) {
+export function KanbanBoard({ filter, monthFilter, search }: Props) {
   const sessions = useSessionStore(s => s.sessions)
   const [creatingSession, setCreatingSession] = useState(false)
   const [selectedSession, setSelectedSession] = useState<Session | null>(null)
@@ -36,6 +38,12 @@ export function KanbanBoard({ filter, search }: Props) {
 
   const filtered = sessions.filter(s => {
     if (filter !== 'all' && s.type !== filter) return false
+    if (monthFilter) {
+      const sessionDate = parseISO(s.startDate)
+      if (sessionDate.getMonth() !== monthFilter.getMonth() || sessionDate.getFullYear() !== monthFilter.getFullYear()) {
+        return false
+      }
+    }
     if (search) {
       const q = search.toLowerCase()
       return (
@@ -63,7 +71,6 @@ export function KanbanBoard({ filter, search }: Props) {
           const colSessions = byColumn(col.id)
           return (
             <div key={col.id} className="flex-shrink-0 w-80">
-              {/* Column header */}
               <div className={`flex items-center justify-between px-4 py-2.5 rounded-xl border mb-3 ${col.headerClass}`}>
                 <div className="flex items-center gap-2">
                   <span>{col.emoji}</span>
@@ -72,7 +79,6 @@ export function KanbanBoard({ filter, search }: Props) {
                 <span className="text-sm font-bold">{colSessions.length}</span>
               </div>
 
-              {/* Cards */}
               <div className="space-y-3">
                 {colSessions.length === 0 ? (
                   <div className="flex items-center justify-center h-24 border-2 border-dashed border-gray-200 rounded-xl text-xs text-gray-400">

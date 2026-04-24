@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Fabic Pipe — Pipeline de formations culinaires',
-  description: 'Gérez vos sessions de formation en cuisine, boulangerie, pâtisserie et plus.',
+  title: 'Lafabic — Pipeline des sessions de formation',
+  description: 'Gestion des sessions de formation culinaires Lafabic : Cuisine, Boulangerie, Pâtisserie, Sans Gluten, Chocolat, Glace.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

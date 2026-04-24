@@ -10,6 +10,7 @@ import type { TrainingType } from '@/types'
 export default function Home() {
   const [view, setView] = useState<'kanban' | 'calendar'>('kanban')
   const [filter, setFilter] = useState<TrainingType | 'all'>('all')
+  const [monthFilter, setMonthFilter] = useState<Date | null>(null)
   const [search, setSearch] = useState('')
   const [creatingSession, setCreatingSession] = useState(false)
 
@@ -28,6 +29,8 @@ export default function Home() {
         onViewChange={setView}
         filter={filter}
         onFilterChange={setFilter}
+        monthFilter={monthFilter}
+        onMonthFilterChange={setMonthFilter}
         search={search}
         onSearchChange={setSearch}
         onNewSession={() => setCreatingSession(true)}
@@ -35,7 +38,7 @@ export default function Home() {
 
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6">
         {view === 'kanban' ? (
-          <KanbanBoard filter={filter} search={search} />
+          <KanbanBoard filter={filter} monthFilter={monthFilter} search={search} />
         ) : (
           <CalendarView filter={filter} search={search} />
         )}
