@@ -1,4 +1,5 @@
 'use client'
+import Image from 'next/image'
 import { Search, Kanban, Calendar, Plus } from 'lucide-react'
 import { format, addMonths, subMonths, startOfMonth } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -43,9 +44,14 @@ export function Header({
         {/* Top bar */}
         <div className="flex items-center justify-between h-16 gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg" style={{ backgroundColor: '#028090' }}>
-              🍽️
-            </div>
+            <Image
+              src="/logo.png"
+              alt="Lafabic"
+              width={40}
+              height={40}
+              className="rounded-xl object-contain"
+              priority
+            />
             <div>
               <h1 className="font-bold text-gray-900 text-lg leading-tight">Lafabic</h1>
               <p className="text-xs text-gray-400 leading-tight">Pipeline des sessions · Montpellier</p>
