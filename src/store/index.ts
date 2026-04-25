@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { v4 as uuidv4 } from 'uuid'
 import { addHours } from 'date-fns'
-import type { Session, SessionFormData, Participant, ParticipantFormData } from '@/types'
+import type { Session, SessionFormData, Participant, ParticipantFormData, TrainingType } from '@/types'
 
 interface SessionStore {
   sessions: Session[]
@@ -64,12 +64,7 @@ export const useSessionStore = create<SessionStore>()(
         set(state => ({
           sessions: state.sessions.map(s =>
             s.id === sessionId
-              ? {
-                  ...s,
-                  participants: s.participants.map(p =>
-                    p.id === participantId ? { ...p, ...data } : p
-                  ),
-                }
+              ? { ...s, participants: s.participants.map(p => p.id === participantId ? { ...p, ...data } : p) }
               : s
           ),
         }))
@@ -90,7 +85,6 @@ export const useSessionStore = create<SessionStore>()(
         const fromSession = state.sessions.find(s => s.id === fromSessionId)
         const participant = fromSession?.participants.find(p => p.id === participantId)
         if (!participant) return
-
         const movedParticipant: Participant = {
           ...participant,
           registeredAt: new Date().toISOString(),
@@ -98,15 +92,10 @@ export const useSessionStore = create<SessionStore>()(
             ? addHours(new Date(), state.sessions.find(s => s.id === toSessionId)?.reservationHoldHours ?? 24).toISOString()
             : undefined,
         }
-
         set(s => ({
           sessions: s.sessions.map(session => {
-            if (session.id === fromSessionId) {
-              return { ...session, participants: session.participants.filter(p => p.id !== participantId) }
-            }
-            if (session.id === toSessionId) {
-              return { ...session, participants: [...session.participants, movedParticipant] }
-            }
+            if (session.id === fromSessionId) return { ...session, participants: session.participants.filter(p => p.id !== participantId) }
+            if (session.id === toSessionId) return { ...session, participants: [...session.participants, movedParticipant] }
             return session
           }),
         }))
@@ -119,14 +108,7 @@ export const useSessionStore = create<SessionStore>()(
         set(state => ({
           sessions: state.sessions.map(s =>
             s.id === sessionId
-              ? {
-                  ...s,
-                  participants: s.participants.map(p =>
-                    p.id === participantId
-                      ? { ...p, status: 'réservé', reservationExpiresAt: expiresAt }
-                      : p
-                  ),
-                }
+              ? { ...s, participants: s.participants.map(p => p.id === participantId ? { ...p, status: 'réservé', reservationExpiresAt: expiresAt } : p) }
               : s
           ),
         }))
@@ -136,14 +118,7 @@ export const useSessionStore = create<SessionStore>()(
         set(state => ({
           sessions: state.sessions.map(s =>
             s.id === sessionId
-              ? {
-                  ...s,
-                  participants: s.participants.map(p =>
-                    p.id === participantId
-                      ? { ...p, status: 'confirmé', reservationExpiresAt: undefined }
-                      : p
-                  ),
-                }
+              ? { ...s, participants: s.participants.map(p => p.id === participantId ? { ...p, status: 'confirmé', reservationExpiresAt: undefined } : p) }
               : s
           ),
         }))
@@ -162,126 +137,146 @@ export const useSessionStore = create<SessionStore>()(
         }))
       },
     }),
-    { name: 'fabic-sessions' }
+    { name: 'fabic-sessions-v2' }
   )
 )
 
-function getSeedData(): Session[] {
-  const now = new Date()
-  const d = (offsetDays: number, hour = 9, endHour = 17) => {
-    const start = new Date(now)
-    start.setDate(start.getDate() + offsetDays)
-    start.setHours(hour, 0, 0, 0)
-    const end = new Date(start)
-    end.setHours(endHour, 0, 0, 0)
-    return { start: start.toISOString(), end: end.toISOString() }
-  }
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
-  return [
-    {
-      id: 'seed-1',
-      type: 'cuisine',
-      title: 'Cuisine du Monde',
-      startDate: d(3).start,
-      endDate: d(3).end,
-      maxParticipants: 8,
-      reservationHoldHours: 24,
-      location: 'Atelier Paris 11e',
-      description: 'Découverte des cuisines asiatiques et méditerranéennes',
-      participants: [
-        { id: 'p1', firstName: 'Marie', lastName: 'Dupont', email: 'marie@example.com', phone: '06 12 34 56 78', status: 'confirmé', registeredAt: new Date().toISOString() },
-        { id: 'p2', firstName: 'Paul', lastName: 'Martin', email: 'paul@example.com', phone: '06 23 45 67 89', status: 'inscrit', registeredAt: new Date().toISOString() },
-        { id: 'p3', firstName: 'Lucie', lastName: 'Bernard', email: 'lucie@example.com', phone: '06 34 56 78 90', status: 'réservé', registeredAt: new Date().toISOString(), reservationExpiresAt: addHours(now, 6).toISOString() },
-      ],
-      createdAt: now.toISOString(),
-    },
-    {
-      id: 'seed-2',
-      type: 'boulangerie',
-      title: 'Pain Artisanal',
-      startDate: d(5).start,
-      endDate: d(5).end,
-      maxParticipants: 6,
-      reservationHoldHours: 48,
-      location: 'Atelier Lyon Centre',
-      description: 'Pains au levain, baguettes tradition et pains spéciaux',
-      participants: [
-        { id: 'p4', firstName: 'Sophie', lastName: 'Leroy', email: 'sophie@example.com', phone: '06 45 67 89 01', status: 'confirmé', registeredAt: new Date().toISOString() },
-        { id: 'p5', firstName: 'Julien', lastName: 'Petit', email: 'julien@example.com', phone: '06 56 78 90 12', status: 'confirmé', registeredAt: new Date().toISOString() },
-        { id: 'p6', firstName: 'Emma', lastName: 'Moreau', email: 'emma@example.com', phone: '06 67 89 01 23', status: 'réservé', registeredAt: new Date().toISOString(), reservationExpiresAt: addHours(now, 2).toISOString() },
-        { id: 'p7', firstName: 'Lucas', lastName: 'Simon', email: 'lucas@example.com', phone: '06 78 90 12 34', status: 'inscrit', registeredAt: new Date().toISOString() },
-        { id: 'p8', firstName: 'Camille', lastName: 'Laurent', email: 'camille@example.com', phone: '06 89 01 23 45', status: 'inscrit', registeredAt: new Date().toISOString() },
-      ],
-      createdAt: now.toISOString(),
-    },
-    {
-      id: 'seed-3',
-      type: 'patisserie',
-      title: 'Tartes & Entremets',
-      startDate: d(7).start,
-      endDate: d(7).end,
-      maxParticipants: 8,
-      reservationHoldHours: 24,
-      location: 'Atelier Paris 11e',
-      description: 'Maîtrisez les bases de la pâtisserie française classique',
-      participants: [
-        { id: 'p9', firstName: 'Chloé', lastName: 'Dubois', email: 'chloe@example.com', phone: '06 90 12 34 56', status: 'inscrit', registeredAt: new Date().toISOString() },
-      ],
-      createdAt: now.toISOString(),
-    },
-    {
-      id: 'seed-4',
-      type: 'chocolat',
-      title: 'Art du Chocolat',
-      startDate: d(10).start,
-      endDate: d(10).end,
-      maxParticipants: 6,
-      reservationHoldHours: 24,
-      location: 'Atelier Bordeaux',
-      description: 'Ganaches, truffes et moulages en chocolat',
-      participants: [
-        { id: 'p10', firstName: 'Thomas', lastName: 'Richard', email: 'thomas@example.com', phone: '06 01 23 45 67', status: 'confirmé', registeredAt: new Date().toISOString() },
-        { id: 'p11', firstName: 'Alice', lastName: 'Michel', email: 'alice@example.com', phone: '06 12 34 56 79', status: 'confirmé', registeredAt: new Date().toISOString() },
-        { id: 'p12', firstName: 'Hugo', lastName: 'Garcia', email: 'hugo@example.com', phone: '06 23 45 67 80', status: 'confirmé', registeredAt: new Date().toISOString() },
-        { id: 'p13', firstName: 'Inès', lastName: 'Martinez', email: 'ines@example.com', phone: '06 34 56 78 91', status: 'confirmé', registeredAt: new Date().toISOString() },
-        { id: 'p14', firstName: 'Maxime', lastName: 'Lopez', email: 'maxime@example.com', phone: '06 45 67 89 02', status: 'confirmé', registeredAt: new Date().toISOString() },
-        { id: 'p15', firstName: 'Léa', lastName: 'Gonzalez', email: 'lea@example.com', phone: '06 56 78 90 13', status: 'réservé', registeredAt: new Date().toISOString(), reservationExpiresAt: addHours(now, 3).toISOString() },
-      ],
-      createdAt: now.toISOString(),
-    },
-    {
-      id: 'seed-5',
-      type: 'glace',
-      title: 'Glaces & Sorbets Maison',
-      startDate: d(14).start,
-      endDate: d(14).end,
-      maxParticipants: 8,
-      reservationHoldHours: 24,
-      location: 'Atelier Nice',
-      description: 'Créez vos glaces artisanales et sorbets de fruits',
-      participants: [],
-      createdAt: now.toISOString(),
-    },
-    {
-      id: 'seed-6',
-      type: 'sans-gluten',
-      title: 'Cuisine Sans Gluten',
-      startDate: d(2).start,
-      endDate: d(2).end,
-      maxParticipants: 6,
-      reservationHoldHours: 24,
-      location: 'Atelier Paris 11e',
-      description: 'Alternatives saines et délicieuses sans gluten',
-      participants: [
-        { id: 'p16', firstName: 'Nora', lastName: 'Wilson', email: 'nora@example.com', phone: '06 67 89 01 24', status: 'confirmé', registeredAt: new Date().toISOString() },
-        { id: 'p17', firstName: 'Pierre', lastName: 'Moore', email: 'pierre@example.com', phone: '06 78 90 12 35', status: 'confirmé', registeredAt: new Date().toISOString() },
-        { id: 'p18', firstName: 'Manon', lastName: 'Taylor', email: 'manon@example.com', phone: '06 89 01 23 46', status: 'inscrit', registeredAt: new Date().toISOString() },
-        { id: 'p19', firstName: 'Antoine', lastName: 'Thomas', email: 'antoine@example.com', phone: '06 90 12 34 57', status: 'réservé', registeredAt: new Date().toISOString(), reservationExpiresAt: addHours(now, 1).toISOString() },
-        { id: 'p20', firstName: 'Zoé', lastName: 'Jackson', email: 'zoe@example.com', phone: '06 01 23 45 68', status: 'inscrit', registeredAt: new Date().toISOString() },
-        { id: 'p21', firstName: 'Romain', lastName: 'White', email: 'romain@example.com', phone: '06 12 34 56 80', status: 'réservé', registeredAt: new Date().toISOString(), reservationExpiresAt: addHours(now, 4).toISOString() },
-      ],
-      createdAt: now.toISOString(),
-    },
-  ]
+function s(
+  type: TrainingType,
+  start: string,
+  end: string,
+  max: number,
+  title?: string,
+  weekend?: boolean,
+): Session {
+  const label: Record<TrainingType, string> = {
+    cuisine: 'Formation Cuisine CPF',
+    boulangerie: 'Formation Boulangerie CPF',
+    patisserie: 'Formation Pâtisserie CPF',
+    'sans-gluten': 'Formation Sans Gluten CPF',
+    chocolat: 'Formation Chocolat CPF',
+    glace: 'Formation Glace CPF',
+    snacking: 'Formation Snacking CPF',
+    'cuisine-2': 'Formation Cuisine Niveau 2 CPF',
+    'patisserie-2': 'Formation Pâtisserie Niveau 2 CPF',
+  }
+  return {
+    id: uuidv4(),
+    type,
+    title: title ?? (weekend ? label[type] + ' (Week-end)' : label[type]),
+    startDate: `${start}T09:00:00.000Z`,
+    endDate: `${end}T17:00:00.000Z`,
+    maxParticipants: max,
+    reservationHoldHours: 48,
+    participants: [],
+    location: 'Lafabic · Montpellier',
+    description: 'Formation financée CPF',
+    createdAt: new Date().toISOString(),
+  }
 }
 
+function getSeedData(): Session[] {
+  return [
+    // ── CUISINE CPF ──────────────────────────────────────────────────────────
+    s('cuisine', '2026-04-07', '2026-04-11', 12),
+    s('cuisine', '2026-05-18', '2026-05-22', 12),
+    s('cuisine', '2026-06-15', '2026-06-19', 12),
+    s('cuisine', '2026-07-17', '2026-07-27', 12, 'Formation Cuisine CPF (Week-end)', true),
+    s('cuisine', '2026-08-10', '2026-08-14', 12),
+    s('cuisine', '2026-09-04', '2026-09-13', 12, 'Formation Cuisine CPF (Week-end)', true),
+    s('cuisine', '2026-09-28', '2026-10-02', 12),
+    s('cuisine', '2026-11-02', '2026-11-06', 12),
+    s('cuisine', '2026-12-07', '2026-12-11', 12),
+    s('cuisine', '2027-01-11', '2027-01-15', 12),
+    s('cuisine', '2027-02-01', '2027-02-05', 12),
+    s('cuisine', '2027-02-19', '2027-02-28', 12, 'Formation Cuisine CPF (Week-end)', true),
+    s('cuisine', '2027-03-01', '2027-03-05', 12),
+    s('cuisine', '2027-03-30', '2027-04-03', 12),
+    s('cuisine', '2027-04-16', '2027-04-25', 12, 'Formation Cuisine CPF (Week-end)', true),
+    s('cuisine', '2027-04-26', '2027-04-30', 12),
+    s('cuisine', '2027-05-31', '2027-06-04', 12),
+    s('cuisine', '2027-06-18', '2027-06-27', 12, 'Formation Cuisine CPF (Week-end)', true),
+
+    // ── PÂTISSERIE CPF ───────────────────────────────────────────────────────
+    s('patisserie', '2025-12-14', '2025-12-18', 12),
+    s('patisserie', '2026-04-20', '2026-04-24', 12),
+    s('patisserie', '2026-05-01', '2026-05-10', 12, 'Formation Pâtisserie CPF (Week-end)', true),
+    s('patisserie', '2026-06-01', '2026-06-05', 12),
+    s('patisserie', '2026-07-06', '2026-07-10', 12),
+    s('patisserie', '2026-08-03', '2026-08-07', 12),
+    s('patisserie', '2026-10-05', '2026-10-09', 12),
+    s('patisserie', '2026-11-16', '2026-11-20', 12),
+    s('patisserie', '2027-01-18', '2027-01-22', 12),
+    s('patisserie', '2027-02-08', '2027-02-12', 12),
+    s('patisserie', '2027-03-08', '2027-03-12', 12),
+    s('patisserie', '2027-03-19', '2027-03-28', 12, 'Formation Pâtisserie CPF (Week-end)', true),
+    s('patisserie', '2027-04-05', '2027-04-09', 12),
+    s('patisserie', '2027-05-10', '2027-05-14', 12),
+    s('patisserie', '2027-05-21', '2027-05-30', 12, 'Formation Pâtisserie CPF (Week-end)', true),
+    s('patisserie', '2027-06-07', '2027-06-11', 12),
+
+    // ── BOULANGERIE CPF ──────────────────────────────────────────────────────
+    s('boulangerie', '2026-03-30', '2026-04-01', 8),
+    s('boulangerie', '2026-04-27', '2026-04-29', 8),
+    s('boulangerie', '2026-06-29', '2026-07-01', 8),
+    s('boulangerie', '2026-07-27', '2026-07-29', 8),
+    s('boulangerie', '2026-08-24', '2026-08-26', 8),
+    s('boulangerie', '2026-09-15', '2026-09-17', 8),
+    s('boulangerie', '2026-10-26', '2026-10-28', 8),
+    s('boulangerie', '2026-11-30', '2026-12-02', 8),
+    s('boulangerie', '2027-01-25', '2027-01-27', 8),
+    s('boulangerie', '2027-02-22', '2027-02-24', 8),
+    s('boulangerie', '2027-03-15', '2027-03-17', 8),
+    s('boulangerie', '2027-04-19', '2027-04-21', 8),
+    s('boulangerie', '2027-05-24', '2027-05-26', 8),
+    s('boulangerie', '2027-06-21', '2027-06-23', 8),
+
+    // ── GLACE CPF ────────────────────────────────────────────────────────────
+    s('glace', '2026-04-13', '2026-04-16', 10),
+    s('glace', '2026-04-23', '2026-04-26', 10),
+    s('glace', '2026-05-07', '2026-05-10', 10),
+    s('glace', '2026-07-06', '2026-07-09', 10),
+    s('glace', '2026-08-17', '2026-08-20', 10),
+    s('glace', '2026-10-27', '2026-10-30', 10),
+    s('glace', '2026-11-26', '2026-11-29', 10),
+    s('glace', '2027-02-15', '2027-02-18', 10),
+    s('glace', '2027-04-05', '2027-04-08', 10),
+    s('glace', '2027-07-05', '2027-07-08', 10),
+
+    // ── CHOCOLAT CPF ─────────────────────────────────────────────────────────
+    s('chocolat', '2026-04-01', '2026-04-03', 10),
+    s('chocolat', '2026-05-06', '2026-05-08', 10),
+    s('chocolat', '2026-11-23', '2026-11-25', 10),
+    s('chocolat', '2027-03-15', '2027-03-17', 10),
+    s('chocolat', '2027-04-12', '2027-04-14', 10),
+    s('chocolat', '2027-05-18', '2027-05-20', 10),
+
+    // ── SANS GLUTEN CPF ──────────────────────────────────────────────────────
+    s('sans-gluten', '2026-05-27', '2026-05-29', 8),
+    s('sans-gluten', '2026-07-20', '2026-07-22', 8),
+    s('sans-gluten', '2026-09-21', '2026-09-23', 8),
+    s('sans-gluten', '2026-11-23', '2026-11-25', 8),
+    s('sans-gluten', '2027-02-15', '2027-02-17', 8),
+    s('sans-gluten', '2027-03-22', '2027-03-24', 8),
+    s('sans-gluten', '2027-05-03', '2027-05-05', 8),
+    s('sans-gluten', '2027-06-14', '2027-06-16', 8),
+
+    // ── SNACKING CPF ─────────────────────────────────────────────────────────
+    s('snacking', '2026-07-23', '2026-07-24', 10),
+    s('snacking', '2026-10-19', '2026-10-20', 10),
+    s('snacking', '2026-12-03', '2026-12-04', 10),
+
+    // ── CUISINE NIVEAU 2 CPF ─────────────────────────────────────────────────
+    s('cuisine-2', '2026-03-23', '2026-03-27', 10),
+    s('cuisine-2', '2026-04-13', '2026-04-17', 10),
+    s('cuisine-2', '2026-11-09', '2026-11-13', 10),
+    s('cuisine-2', '2027-04-12', '2027-04-16', 10),
+
+    // ── PÂTISSERIE NIVEAU 2 CPF ──────────────────────────────────────────────
+    s('patisserie-2', '2026-06-08', '2026-06-12', 10),
+    s('patisserie-2', '2026-10-12', '2026-10-16', 10),
+    s('patisserie-2', '2027-06-28', '2027-07-02', 10),
+  ]
+}

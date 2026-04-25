@@ -63,6 +63,33 @@ export const TRAINING_CONFIG: Record<TrainingType, {
     hex: '#1C7293',
     emoji: '🍦',
   },
+  snacking: {
+    label: 'Snacking',
+    bg: 'bg-orange-500',
+    text: 'text-orange-700',
+    light: 'bg-orange-50',
+    border: 'border-orange-300',
+    hex: '#E45C3A',
+    emoji: '🥪',
+  },
+  'cuisine-2': {
+    label: 'Cuisine Niv.2',
+    bg: 'bg-teal-800',
+    text: 'text-teal-900',
+    light: 'bg-teal-50',
+    border: 'border-teal-400',
+    hex: '#015F6B',
+    emoji: '🍽️',
+  },
+  'patisserie-2': {
+    label: 'Pâtisserie Niv.2',
+    bg: 'bg-fuchsia-700',
+    text: 'text-fuchsia-800',
+    light: 'bg-fuchsia-50',
+    border: 'border-fuchsia-300',
+    hex: '#B83770',
+    emoji: '🏆',
+  },
 }
 
 export const TRAINING_TYPES = Object.keys(TRAINING_CONFIG) as TrainingType[]
