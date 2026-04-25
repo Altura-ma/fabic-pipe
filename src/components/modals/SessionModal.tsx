@@ -11,7 +11,15 @@ interface Props {
   onClose: () => void
 }
 
-const HOLD_OPTIONS = [1, 2, 4, 8, 12, 24, 48, 72]
+const HOLD_OPTIONS = [
+  { value: 24,   label: '1 jour' },
+  { value: 48,   label: '2 jours' },
+  { value: 72,   label: '3 jours' },
+  { value: 168,  label: '1 semaine' },
+  { value: 336,  label: '2 semaines' },
+  { value: 504,  label: '3 semaines' },
+  { value: 720,  label: '1 mois' },
+]
 
 export function SessionModal({ session, onClose }: Props) {
   const addSession = useSessionStore(s => s.addSession)
@@ -25,7 +33,7 @@ export function SessionModal({ session, onClose }: Props) {
     startDate: toInputDate(session?.startDate),
     endDate: toInputDate(session?.endDate),
     maxParticipants: session?.maxParticipants ?? 8,
-    reservationHoldHours: session?.reservationHoldHours ?? 24,
+    reservationHoldHours: session?.reservationHoldHours ?? 336,
     location: session?.location ?? '',
     description: session?.description ?? '',
   })
@@ -151,7 +159,7 @@ export function SessionModal({ session, onClose }: Props) {
                 className="input"
               >
                 {HOLD_OPTIONS.map(h => (
-                  <option key={h} value={h}>{h < 24 ? `${h}h` : `${h / 24}j`}</option>
+                  <option key={h.value} value={h.value}>{h.label}</option>
                 ))}
               </select>
             </Field>

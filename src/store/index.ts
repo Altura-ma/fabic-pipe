@@ -169,7 +169,7 @@ function s(
     startDate: `${start}T09:00:00.000Z`,
     endDate: `${end}T17:00:00.000Z`,
     maxParticipants: max,
-    reservationHoldHours: 48,
+    reservationHoldHours: 336,
     participants: [],
     location: 'Lafabic · Montpellier',
     description: 'Formation financée CPF',
