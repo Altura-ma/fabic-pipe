@@ -1,14 +1,32 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Clock, MapPin, Users, Timer, ChevronRight } from 'lucide-react'
+
 import type { Session } from '@/types'
 import { TRAINING_CONFIG } from '@/lib/colors'
 import { TrainingBadge, AvailabilityPill } from '@/components/ui/Badge'
 import { ProgressBar } from '@/components/ui/ProgressBar'
+import { parseISO, isSameMonth, isSameYear, format } from 'date-fns'
+import { fr } from 'date-fns/locale'
 import {
   getAvailableSpots, getReservedCount, getConfirmedCount,
-  formatDate, formatTimeRange, getSessionColumn,
+  getSessionColumn,
 } from '@/lib/utils'
+
+function formatDateRange(start: string, end: string): string {
+  const s = parseISO(start)
+  const e = parseISO(end)
+  if (start.slice(0, 10) === end.slice(0, 10)) {
+    return format(s, 'dd MMM yyyy', { locale: fr })
+  }
+  if (isSameMonth(s, e)) {
+    return `${format(s, 'dd')} → ${format(e, 'dd MMM yyyy', { locale: fr })}`
+  }
+  if (isSameYear(s, e)) {
+    return `${format(s, 'dd MMM', { locale: fr })} → ${format(e, 'dd MMM yyyy', { locale: fr })}`
+  }
+  return `${format(s, 'dd MMM yyyy', { locale: fr })} → ${format(e, 'dd MMM yyyy', { locale: fr })}`
+}
 
 interface Props {
   session: Session
@@ -50,13 +68,12 @@ export function SessionCard({ session, onClick }: Props) {
           <ChevronRight size={16} className="text-gray-300 group-hover:text-gray-400 shrink-0 mt-1 transition-colors" />
         </div>
 
-        {/* Date & Time */}
-        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 mb-3">
-          <span className="flex items-center gap-1">
+        {/* Dates + lieu */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 mb-3">
+          <span className="flex items-center gap-1 font-medium text-gray-600">
             <Clock size={11} />
-            {formatDate(session.startDate)}
+            {formatDateRange(session.startDate, session.endDate)}
           </span>
-          <span>{formatTimeRange(session.startDate, session.endDate)}</span>
           {session.location && (
             <span className="flex items-center gap-1">
               <MapPin size={11} />
