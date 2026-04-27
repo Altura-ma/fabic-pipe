@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
-import { TRAINING_CONFIG, TRAINING_TYPES } from '@/lib/colors'
+import { TRAINING_CONFIG, TRAINING_TYPES, DEFAULT_MAX_PARTICIPANTS } from '@/lib/colors'
 import { useSessionStore } from '@/store'
 import type { Session, SessionFormData, TrainingType } from '@/types'
 import { format } from 'date-fns'
@@ -27,12 +27,13 @@ export function SessionModal({ session, onClose }: Props) {
 
   const toInputDate = (iso?: string) => iso ? format(new Date(iso), "yyyy-MM-dd'T'HH:mm") : ''
 
+  const initialType = session?.type ?? 'cuisine'
   const [form, setForm] = useState<SessionFormData>({
-    type: session?.type ?? 'cuisine',
+    type: initialType,
     title: session?.title ?? '',
     startDate: toInputDate(session?.startDate),
     endDate: toInputDate(session?.endDate),
-    maxParticipants: session?.maxParticipants ?? 8,
+    maxParticipants: session?.maxParticipants ?? DEFAULT_MAX_PARTICIPANTS[initialType],
     reservationHoldHours: session?.reservationHoldHours ?? 336,
     location: session?.location ?? '',
     description: session?.description ?? '',
@@ -94,7 +95,12 @@ export function SessionModal({ session, onClose }: Props) {
                   <button
                     key={t}
                     type="button"
-                    onClick={() => setForm(f => ({ ...f, type: t }))}
+                    onClick={() => setForm(f => ({
+                      ...f,
+                      type: t,
+                      // auto-update max only when creating (no existing session)
+                      maxParticipants: session ? f.maxParticipants : DEFAULT_MAX_PARTICIPANTS[t],
+                    }))}
                     className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 text-sm font-medium transition-all ${
                       form.type === t
                         ? `${c.light} ${c.text} ${c.border} border-2`

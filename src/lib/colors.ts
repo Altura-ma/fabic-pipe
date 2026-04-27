@@ -93,3 +93,15 @@ export const TRAINING_CONFIG: Record<TrainingType, {
 }
 
 export const TRAINING_TYPES = Object.keys(TRAINING_CONFIG) as TrainingType[]
+
+export const DEFAULT_MAX_PARTICIPANTS: Record<TrainingType, number> = {
+  cuisine:       10,
+  'cuisine-2':   10,
+  patisserie:    10,
+  'patisserie-2':10,
+  snacking:      10,
+  boulangerie:    8,
+  'sans-gluten':  8,
+  glace:          6,
+  chocolat:       6,
+}
