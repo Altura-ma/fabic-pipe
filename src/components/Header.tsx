@@ -1,6 +1,6 @@
 'use client'
 import Image from 'next/image'
-import { Search, Kanban, Calendar, Plus } from 'lucide-react'
+import { Search, Kanban, Calendar, Plus, Table2 } from 'lucide-react'
 import { format, addMonths, subMonths, startOfMonth } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { TRAINING_CONFIG, TRAINING_TYPES } from '@/lib/colors'
@@ -9,8 +9,8 @@ import { useSessionStore } from '@/store'
 import { getAvailableSpots, getSessionColumn } from '@/lib/utils'
 
 interface Props {
-  view: 'kanban' | 'calendar'
-  onViewChange: (v: 'kanban' | 'calendar') => void
+  view: 'kanban' | 'calendar' | 'table'
+  onViewChange: (v: 'kanban' | 'calendar' | 'table') => void
   filter: TrainingType | 'all'
   onFilterChange: (f: TrainingType | 'all') => void
   monthFilter: Date | null
@@ -90,6 +90,15 @@ export function Header({
               >
                 <Calendar size={15} />
                 <span className="hidden sm:inline">Calendrier</span>
+              </button>
+              <button
+                onClick={() => onViewChange('table')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  view === 'table' ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Table2 size={15} />
+                <span className="hidden sm:inline">Tableau</span>
               </button>
             </div>
 

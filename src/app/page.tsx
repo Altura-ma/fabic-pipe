@@ -3,12 +3,13 @@ import { useState, useEffect } from 'react'
 import { Header } from '@/components/Header'
 import { KanbanBoard } from '@/components/KanbanBoard'
 import { CalendarView } from '@/components/CalendarView'
+import { TableView } from '@/components/TableView'
 import { SessionModal } from '@/components/modals/SessionModal'
 import { useSessionStore } from '@/store'
 import type { TrainingType } from '@/types'
 
 export default function Home() {
-  const [view, setView] = useState<'kanban' | 'calendar'>('kanban')
+  const [view, setView] = useState<'kanban' | 'calendar' | 'table'>('kanban')
   const [filter, setFilter] = useState<TrainingType | 'all'>('all')
   const [monthFilter, setMonthFilter] = useState<Date | null>(null)
   const [search, setSearch] = useState('')
@@ -37,11 +38,9 @@ export default function Home() {
       />
 
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6">
-        {view === 'kanban' ? (
-          <KanbanBoard filter={filter} monthFilter={monthFilter} search={search} />
-        ) : (
-          <CalendarView filter={filter} search={search} />
-        )}
+        {view === 'kanban' && <KanbanBoard filter={filter} monthFilter={monthFilter} search={search} />}
+        {view === 'calendar' && <CalendarView filter={filter} search={search} />}
+        {view === 'table' && <TableView filter={filter} monthFilter={monthFilter} search={search} />}
       </main>
 
       {creatingSession && (
