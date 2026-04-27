@@ -7,6 +7,10 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Lafabic — Pipeline des sessions de formation',
   description: 'Gestion des sessions de formation culinaires Lafabic : Cuisine, Boulangerie, Pâtisserie, Sans Gluten, Chocolat, Glace.',
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
