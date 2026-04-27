@@ -1,10 +1,10 @@
 'use client'
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Users } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
-  eachDayOfInterval, isSameMonth, isSameDay, isToday,
-  addMonths, subMonths, parseISO, format,
+  eachDayOfInterval, isSameMonth, isSameDay, isToday, isAfter, isBefore,
+  addMonths, subMonths, parseISO, format, startOfDay,
 } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { useSessionStore } from '@/store'
@@ -19,7 +19,142 @@ interface Props {
   search: string
 }
 
+interface EventPlacement {
+  session: Session
+  startCol: number  // 1-based
+  span: number
+  lane: number
+  continuesLeft: boolean
+  continuesRight: boolean
+}
+
 const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+
+function computePlacements(weekDays: Date[], sessions: Session[]): EventPlacement[] {
+  const weekStart = startOfDay(weekDays[0])
+  const weekEnd = startOfDay(weekDays[6])
+
+  const weekSessions = sessions.filter(s => {
+    const start = startOfDay(parseISO(s.startDate))
+    const end = startOfDay(parseISO(s.endDate))
+    return !isAfter(start, weekEnd) && !isBefore(end, weekStart)
+  })
+
+  // Longer events first, then by start date
+  weekSessions.sort((a, b) => {
+    const aStart = startOfDay(parseISO(a.startDate))
+    const bStart = startOfDay(parseISO(b.startDate))
+    const aEnd = startOfDay(parseISO(a.endDate))
+    const bEnd = startOfDay(parseISO(b.endDate))
+    const aDur = aEnd.getTime() - aStart.getTime()
+    const bDur = bEnd.getTime() - bStart.getTime()
+    if (bDur !== aDur) return bDur - aDur
+    return aStart.getTime() - bStart.getTime()
+  })
+
+  const placements: EventPlacement[] = []
+  const occupied: boolean[][] = [] // occupied[lane][col 0-6]
+
+  for (const session of weekSessions) {
+    const sessionStart = startOfDay(parseISO(session.startDate))
+    const sessionEnd = startOfDay(parseISO(session.endDate))
+
+    const continuesLeft = isBefore(sessionStart, weekStart)
+    const continuesRight = isAfter(sessionEnd, weekEnd)
+
+    const startIdx = continuesLeft
+      ? 0
+      : weekDays.findIndex(d => isSameDay(d, sessionStart))
+    const endIdx = continuesRight
+      ? 6
+      : weekDays.findIndex(d => isSameDay(d, sessionEnd))
+
+    if (startIdx === -1 || endIdx === -1) continue
+
+    const span = endIdx - startIdx + 1
+
+    // Find first available lane
+    let lane = 0
+    while (true) {
+      if (!occupied[lane]) occupied[lane] = new Array(7).fill(false)
+      const fits = !occupied[lane].slice(startIdx, endIdx + 1).some(Boolean)
+      if (fits) {
+        for (let i = startIdx; i <= endIdx; i++) occupied[lane][i] = true
+        break
+      }
+      lane++
+    }
+
+    placements.push({ session, startCol: startIdx + 1, span, lane, continuesLeft, continuesRight })
+  }
+
+  return placements
+}
+
+function WeekEvents({
+  weekDays,
+  sessions,
+  onSessionClick,
+}: {
+  weekDays: Date[]
+  sessions: Session[]
+  onSessionClick: (s: Session) => void
+}) {
+  const placements = computePlacements(weekDays, sessions)
+
+  if (placements.length === 0) {
+    return <div className="h-2" />
+  }
+
+  const maxLane = placements.reduce((m, p) => Math.max(m, p.lane), 0)
+
+  return (
+    <div
+      className="grid pb-1.5 pt-0.5 px-0.5"
+      style={{
+        gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+        gridAutoRows: '24px',
+        minHeight: `${(maxLane + 1) * 26}px`,
+        gap: '2px 0',
+      }}
+    >
+      {placements.map(({ session, startCol, span, lane, continuesLeft, continuesRight }) => {
+        const cfg = TRAINING_CONFIG[session.type]
+        const available = getAvailableSpots(session)
+        const confirmed = getConfirmedCount(session)
+        return (
+          <button
+            key={session.id}
+            onClick={() => onSessionClick(session)}
+            title={`${session.title} — ${confirmed}/${session.maxParticipants} inscrits${available === 0 ? ' — Complet' : ` — ${available} place${available > 1 ? 's' : ''} libre${available > 1 ? 's' : ''}`}`}
+            className="flex items-center text-xs font-medium px-1.5 hover:opacity-80 transition-opacity overflow-hidden h-[22px] self-start"
+            style={{
+              gridColumn: `${startCol} / span ${span}`,
+              gridRow: lane + 1,
+              backgroundColor: cfg.hex + '28',
+              color: cfg.hex,
+              borderLeft: continuesLeft ? 'none' : `3px solid ${cfg.hex}`,
+              borderTopLeftRadius: continuesLeft ? 0 : '9999px',
+              borderBottomLeftRadius: continuesLeft ? 0 : '9999px',
+              borderTopRightRadius: continuesRight ? 0 : '9999px',
+              borderBottomRightRadius: continuesRight ? 0 : '9999px',
+              marginLeft: continuesLeft ? 0 : '2px',
+              marginRight: continuesRight ? 0 : '2px',
+            }}
+          >
+            <span className="truncate whitespace-nowrap">
+              {cfg.emoji} {session.title}
+              {available === 0
+                ? <span className="ml-1 opacity-70">Complet</span>
+                : <span className="ml-1 opacity-70">{confirmed}/{session.maxParticipants}</span>
+              }
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
 export function CalendarView({ filter, search }: Props) {
   const sessions = useSessionStore(s => s.sessions)
@@ -40,21 +175,22 @@ export function CalendarView({ filter, search }: Props) {
   const monthEnd = endOfMonth(currentMonth)
   const calStart = startOfWeek(monthStart, { weekStartsOn: 1 })
   const calEnd = endOfWeek(monthEnd, { weekStartsOn: 1 })
-  const days = eachDayOfInterval({ start: calStart, end: calEnd })
+  const allDays = eachDayOfInterval({ start: calStart, end: calEnd })
 
-  function sessionsOnDay(day: Date): Session[] {
-    return filtered.filter(s => isSameDay(parseISO(s.startDate), day))
-      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+  // Group into weeks
+  const weeks: Date[][] = []
+  for (let i = 0; i < allDays.length; i += 7) {
+    weeks.push(allDays.slice(i, i + 7))
   }
 
   return (
     <>
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {/* Month navigation */}
-        <div className="flex items-center justify-between px-6 py-4 border-b">
+        <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
           <button
             onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
           >
             <ChevronLeft size={18} />
           </button>
@@ -63,54 +199,60 @@ export function CalendarView({ filter, search }: Props) {
           </h2>
           <button
             onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
           >
             <ChevronRight size={18} />
           </button>
         </div>
 
         {/* Weekday headers */}
-        <div className="grid grid-cols-7 border-b">
-          {WEEKDAYS.map(d => (
-            <div key={d} className="py-2 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">
+        <div className="grid grid-cols-7 border-b bg-gray-50">
+          {WEEKDAYS.map((d, i) => (
+            <div
+              key={d}
+              className={`py-2 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide ${i < 6 ? 'border-r border-gray-100' : ''}`}
+            >
               {d}
             </div>
           ))}
         </div>
 
-        {/* Calendar grid */}
-        <div className="grid grid-cols-7">
-          {days.map((day, i) => {
-            const daySessions = sessionsOnDay(day)
-            const inMonth = isSameMonth(day, currentMonth)
-            const today = isToday(day)
-
-            return (
-              <div
-                key={i}
-                className={`min-h-[110px] border-b border-r p-1.5 ${!inMonth ? 'bg-gray-50' : ''} ${
-                  i % 7 === 6 ? 'border-r-0' : ''
-                }`}
-              >
-                <div className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium mb-1 ${
-                  today ? 'bg-indigo-600 text-white' : inMonth ? 'text-gray-700' : 'text-gray-300'
-                }`}>
-                  {format(day, 'd')}
-                </div>
-
-                <div className="space-y-1">
-                  {daySessions.slice(0, 3).map(s => (
-                    <CalEvent key={s.id} session={s} onClick={() => setSelectedSession(s)} />
-                  ))}
-                  {daySessions.length > 3 && (
-                    <div className="text-xs text-gray-400 px-1">
-                      +{daySessions.length - 3} autre{daySessions.length - 3 > 1 ? 's' : ''}
+        {/* Weeks */}
+        <div>
+          {weeks.map((weekDays, wi) => (
+            <div key={wi} className={wi < weeks.length - 1 ? 'border-b border-gray-100' : ''}>
+              {/* Day number row */}
+              <div className="grid grid-cols-7">
+                {weekDays.map((day, di) => {
+                  const inMonth = isSameMonth(day, currentMonth)
+                  const today = isToday(day)
+                  return (
+                    <div
+                      key={di}
+                      className={`${di < 6 ? 'border-r border-gray-100' : ''} ${!inMonth ? 'bg-gray-50/60' : ''} pt-1.5 pb-0 px-2 flex justify-end`}
+                    >
+                      <span className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full ${
+                        today
+                          ? 'bg-indigo-600 text-white'
+                          : inMonth
+                            ? 'text-gray-700'
+                            : 'text-gray-300'
+                      }`}>
+                        {format(day, 'd')}
+                      </span>
                     </div>
-                  )}
-                </div>
+                  )
+                })}
               </div>
-            )
-          })}
+
+              {/* Events for this week */}
+              <WeekEvents
+                weekDays={weekDays}
+                sessions={filtered}
+                onSessionClick={setSelectedSession}
+              />
+            </div>
+          ))}
         </div>
       </div>
 
@@ -138,27 +280,5 @@ export function CalendarView({ filter, search }: Props) {
         <SessionModal session={editingSession} onClose={() => setEditingSession(null)} />
       )}
     </>
-  )
-}
-
-function CalEvent({ session, onClick }: { session: Session; onClick: () => void }) {
-  const cfg = TRAINING_CONFIG[session.type]
-  const available = getAvailableSpots(session)
-  const confirmed = getConfirmedCount(session)
-
-  return (
-    <button
-      onClick={onClick}
-      className="w-full text-left rounded px-1.5 py-1 text-xs truncate hover:opacity-80 transition-opacity"
-      style={{ backgroundColor: cfg.hex + '22', color: cfg.hex, borderLeft: `3px solid ${cfg.hex}` }}
-      title={`${session.title} — ${available} place${available !== 1 ? 's' : ''} libre${available !== 1 ? 's' : ''}`}
-    >
-      <span className="font-medium truncate block">{cfg.emoji} {session.title}</span>
-      <span className="flex items-center gap-0.5 opacity-70">
-        <Users size={9} />
-        {confirmed}/{session.maxParticipants}
-        {available === 0 && ' • Complet'}
-      </span>
-    </button>
   )
 }

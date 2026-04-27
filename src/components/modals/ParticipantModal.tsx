@@ -13,7 +13,7 @@ interface Props {
 }
 
 const STATUS_OPTIONS: { value: ParticipantStatus; label: string; desc: string }[] = [
-  { value: 'inscrit', label: 'Inscrit', desc: 'Inscription confirmée' },
+  { value: 'inscrit', label: 'Inscrit', desc: 'En attente de validation' },
   { value: 'réservé', label: 'Réservé', desc: 'Place temporairement réservée' },
   { value: 'confirmé', label: 'Confirmé', desc: 'Participation confirmée et payée' },
 ]

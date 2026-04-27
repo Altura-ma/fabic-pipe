@@ -1,4 +1,4 @@
-export type TrainingType = 'cuisine' | 'boulangerie' | 'patisserie' | 'sans-gluten' | 'chocolat' | 'glace'
+export type TrainingType = 'cuisine' | 'boulangerie' | 'patisserie' | 'sans-gluten' | 'chocolat' | 'glace' | 'snacking' | 'cuisine-2' | 'patisserie-2'
 
 export type ParticipantStatus = 'inscrit' | 'réservé' | 'confirmé'
 
